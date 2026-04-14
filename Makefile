@@ -552,20 +552,26 @@ OVLY_CFLAGS = $(filter-out -flto=auto -ffat-lto-objects,$(CFLAGS)) -ffunction-se
 
 all: $(TARGET)
 	$(OBJCOPY) -O binary -R .ovly_spectrum -R .ovly_fm -R .ovly_aircopy -R .ovly_menu $< $<.bin
+	@$(MY_PYTHON) -c "import struct,subprocess,re; \
+	  nm=subprocess.check_output(['$(PREFIX)nm','$<']).decode(); \
+	  addr=int(re.search(r'([0-9a-fA-F]+) . _etext',nm).group(1),16); \
+	  open('$<.ovly_hdr.tmp','wb').write(struct.pack('<II',0x594C564F,addr)); \
+	  print('Overlay header: OVLY + build_sig=0x%08x' % addr)"
 ifeq ($(ENABLE_SPECTRUM), 1)
 	$(OBJCOPY) -O binary -j .ovly_spectrum $< $<.ovly_spectrum.raw 2>/dev/null && \
-	printf 'OVLY' | cat - $<.ovly_spectrum.raw > $<.ovly_spectrum.bin && rm -f $<.ovly_spectrum.raw || true
+	cat $<.ovly_hdr.tmp $<.ovly_spectrum.raw > $<.ovly_spectrum.bin && rm -f $<.ovly_spectrum.raw || true
 endif
 ifeq ($(ENABLE_FMRADIO),1)
 	$(OBJCOPY) -O binary -j .ovly_fm $< $<.ovly_fm.raw 2>/dev/null && \
-	printf 'OVLY' | cat - $<.ovly_fm.raw > $<.ovly_fm.bin && rm -f $<.ovly_fm.raw || true
+	cat $<.ovly_hdr.tmp $<.ovly_fm.raw > $<.ovly_fm.bin && rm -f $<.ovly_fm.raw || true
 endif
 ifeq ($(ENABLE_AIRCOPY),1)
 	$(OBJCOPY) -O binary -j .ovly_aircopy $< $<.ovly_aircopy.raw 2>/dev/null && \
-	printf 'OVLY' | cat - $<.ovly_aircopy.raw > $<.ovly_aircopy.bin && rm -f $<.ovly_aircopy.raw || true
+	cat $<.ovly_hdr.tmp $<.ovly_aircopy.raw > $<.ovly_aircopy.bin && rm -f $<.ovly_aircopy.raw || true
 endif
 	$(OBJCOPY) -O binary -j .ovly_menu $< $<.ovly_menu.raw 2>/dev/null && \
-	printf 'OVLY' | cat - $<.ovly_menu.raw > $<.ovly_menu.bin && rm -f $<.ovly_menu.raw || true
+	cat $<.ovly_hdr.tmp $<.ovly_menu.raw > $<.ovly_menu.bin && rm -f $<.ovly_menu.raw || true
+	@rm -f $<.ovly_hdr.tmp
 
 ifndef MY_PYTHON
 	$(info )

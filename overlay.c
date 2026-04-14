@@ -4,6 +4,7 @@
 
 extern uint8_t _overlay_start[];
 extern uint8_t _overlay_end[];
+extern uint8_t _etext[];
 
 extern uint8_t _ovly_spectrum_size[];
 extern uint8_t _ovly_fm_size[];
@@ -19,6 +20,11 @@ static const uint32_t ovly_eeprom_addr[] = {
     [OVERLAY_MENU]     = EEPROM_OVLY_MENU,
 };
 
+uint32_t OVERLAY_GetBuildSig(void)
+{
+    return (uint32_t)_etext;
+}
+
 bool OVERLAY_Load(OverlayID_t id)
 {
     if (id == gCurrentOverlay)
@@ -29,15 +35,15 @@ bool OVERLAY_Load(OverlayID_t id)
 
     uint32_t eeprom_addr = ovly_eeprom_addr[id];
 
-    /* Each overlay slot starts with a 4-byte magic (OVERLAY_MAGIC).
-       If the magic is missing the overlay hasn't been written yet. */
-    uint32_t magic;
-    EEPROM_ReadBuffer(eeprom_addr, &magic, 4);
-    if (magic != OVERLAY_MAGIC) {
+    /* Header: 8 bytes = 4-byte magic "OVLY" + 4-byte build signature.
+       Rejects overlays from a different firmware build. */
+    uint32_t header[2];
+    EEPROM_ReadBuffer(eeprom_addr, header, 8);
+    if (header[0] != OVERLAY_MAGIC || header[1] != OVERLAY_GetBuildSig()) {
         gCurrentOverlay = OVERLAY_NONE;
         return false;
     }
-    eeprom_addr += 4;  /* skip past magic */
+    eeprom_addr += 8;
 
     uint32_t size;
     switch (id) {
