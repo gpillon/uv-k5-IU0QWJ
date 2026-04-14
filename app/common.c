@@ -1,5 +1,6 @@
 #include "app/chFrScanner.h"
 #include "audio.h"
+#include "eeprom_map.h"
 #include "functions.h"
 #include "misc.h"
 #include "settings.h"
@@ -60,8 +61,8 @@ void COMMON_SwitchVFOMode()
             return;
         }
 
-        uint8_t Channel = RADIO_FindNextChannel(gEeprom.MrChannel[gEeprom.TX_VFO], 1, false, 0);
-        if (Channel != 0xFF)
+        uint16_t Channel = RADIO_FindNextChannel(gEeprom.MrChannel[gEeprom.TX_VFO], 1, false, 0);
+        if (Channel != INVALID_CHANNEL)
         {   // swap to channel mode
             gEeprom.ScreenChannel[gEeprom.TX_VFO] = Channel;
             #ifdef ENABLE_VOICE

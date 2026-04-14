@@ -13,28 +13,25 @@ MEMORY
 
 SECTIONS
 {
-	/* Program code */
+	/* Program code - EXCLUDE overlay objects */
 	.text :
 	{
 		. = ALIGN(4);
-		KEEP(*(.text.isr)) /* .text sections of code  */
-		*(.text)           /* .text sections of code  */
-		*(.text*)          /* .text* sections of code */
-		*(.rodata)         /* .rodata sections        */
-		*(.rodata*)        /* .rodata* sections       */
-		*(.glue_7)         /* Glue arm to thumb code  */
-		*(.glue_7t)        /* Glue thumb to arm code  */
+		KEEP(*(.text.isr))
+		EXCLUDE_FILE(*spectrum.o *fm.o *fmradio.o *aircopy.o *menu_render.o) *(.text)
+		EXCLUDE_FILE(*spectrum.o *fm.o *fmradio.o *aircopy.o *menu_render.o) *(.text*)
+		EXCLUDE_FILE(*spectrum.o *fm.o *fmradio.o *aircopy.o *menu_render.o) *(.rodata)
+		EXCLUDE_FILE(*spectrum.o *fm.o *fmradio.o *aircopy.o *menu_render.o) *(.rodata*)
+		*(.glue_7)
+		*(.glue_7t)
 		*(.eh_frame)
 
 		KEEP(*(.fini))
 		. = ALIGN(4);
-		_etext = .;        /* global symbols at end   */
+		_etext = .;
 	} >FLASH
 
-	/* Used by startup code */
-
 	. = ALIGN(4);
-
 	flash_data_start = .;
 
 	.data :
@@ -43,31 +40,67 @@ SECTIONS
 		sram_data_start = .;
 		*(.sramtext)
 		*(.srambss)
-		*(.data)           /* .data sections              */
-		*(.data*)          /* .data* sections             */
-
+		*(.data)
+		*(.data*)
 		. = ALIGN(4);
-		_edata = .;        /* Global symbol at data end   */
+		_edata = .;
 	} >RAM AT> FLASH
 
 	sram_data_end = .;
 
-	/* Uninitialized data */
 	. = ALIGN(4);
 	.bss :
 	{
-		_sbss = .;         /* Global symbol at bss start */
+		_sbss = .;
 		__bss_start__ = _sbss;
 		*(.bss)
 		*(.bss*)
 		*(COMMON)
-
 		. = ALIGN(4);
-		_ebss = .;         /* Global symbol at bss end */
+		_ebss = .;
 		__bss_end__ = _ebss;
 	} >RAM
 
-	/* Check that there is enough RAM */
+	/* EEPROM-backed code overlays.
+	   All sections share the same RAM VMA (only one loaded at a time).
+	   LMA at 0xF0000 is virtual - NOT stored in flash binary.
+	   Overlay loader copies from EEPROM to RAM at runtime. */
+	. = ALIGN(4);
+	_overlay_start = .;
+
+	OVERLAY : NOCROSSREFS AT(0xF0000)
+	{
+		.ovly_spectrum
+		{
+			*spectrum.o(.text .text.* .rodata .rodata.* .data .data.*)
+			. = ALIGN(4);
+		}
+		.ovly_fm
+		{
+			*fm.o(.text .text.* .rodata .rodata.* .data .data.*)
+			*fmradio.o(.text .text.* .rodata .rodata.* .data .data.*)
+			. = ALIGN(4);
+		}
+		.ovly_aircopy
+		{
+			*aircopy.o(.text .text.* .rodata .rodata.* .data .data.*)
+			. = ALIGN(4);
+		}
+		.ovly_menu
+		{
+			*menu_render.o(.text .text.* .rodata .rodata.* .data .data.*)
+			. = ALIGN(4);
+		}
+	} > RAM
+
+	_overlay_end = .;
+
+	_ovly_spectrum_size = SIZEOF(.ovly_spectrum);
+	_ovly_fm_size = SIZEOF(.ovly_fm);
+	_ovly_aircopy_size = SIZEOF(.ovly_aircopy);
+	_ovly_menu_size = SIZEOF(.ovly_menu);
+
+	/* Check that there is enough RAM for stack */
 	._user_heap_stack :
 	{
 		. = ALIGN(4);
@@ -76,4 +109,3 @@ SECTIONS
 		. = ALIGN(4);
 	} >RAM
 }
-

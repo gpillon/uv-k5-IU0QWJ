@@ -234,7 +234,7 @@ bool              gFlagReconfigureVfos;
 uint8_t           gVfoConfigureMode;
 bool              gFlagResetVfos;
 bool              gRequestSaveVFO;
-uint8_t           gRequestSaveChannel;
+uint16_t          gRequestSaveChannel;
 bool              gRequestSaveSettings;
 #ifdef ENABLE_FMRADIO
     bool          gRequestSaveFM;
@@ -262,7 +262,7 @@ bool              g_SquelchLost;
 volatile uint16_t gFlashLightBlinkCounter;
 
 bool              gFlagEndTransmission;
-uint8_t           gNextMrChannel;
+uint16_t          gNextMrChannel;
 ReceptionMode_t   gRxReceptionMode;
 
 bool              gRxVfoIsActive;

@@ -1,3 +1,34 @@
+# IU0QWJ Edition — 999 Channels + EEPROM Code Overlay System
+
+This fork by **IU0QWJ** adds hardware and firmware modifications to support the **24M02 EEPROM** (256KB, replacing the original 24C64 8KB chip), enabling **999 memory channels** and an **EEPROM code overlay system** that fits all features into a single firmware build.
+
+## What changed (IU0QWJ Edition v4.3.1)
+
+### Hardware
+- **EEPROM upgrade**: 24C64 (8KB) → 24M02 (256KB). Requires physical chip replacement on the radio PCB.
+
+### Firmware
+- **999 MR channels** (up from 200): new EEPROM memory map at `eeprom_map.h`, channel data relocated to 0x2000+.
+- **EEPROM code overlay system**: large feature modules (Spectrum Analyzer, FM Radio, Aircopy) are stored as binary overlays in EEPROM and loaded into RAM on demand. This overcomes the 60KB flash limit of the DP32G030 MCU, allowing ALL features in one firmware.
+- **All features enabled in a single build**: Spectrum + FM Radio + Aircopy + NOAA + VOX + TX1750 + Flashlight + DTMF Calling.
+- **Spectrum on F+6** (F+5 remains NOAA).
+- **Factory calibration data preserved** at original EEPROM addresses (0x1E00-0x1FFF) — no risk of losing calibration.
+- **CHIRP driver updated** (`uvk5_egzumer_f4hwn_ver_4_3_0.py`) to support 999 channels and automatic overlay binary upload with detailed progress messages.
+
+### Key files added/modified
+| File | Description |
+|------|-------------|
+| `overlay.c` / `overlay.h` | Runtime overlay loader (EEPROM → RAM) |
+| `eeprom_map.h` | Centralized EEPROM address definitions for 999 channels |
+| `firmware.ld` | Linker script with OVERLAY sections |
+| `compile-iu0qwj.sh` | Docker build script for this edition |
+| `uvk5_egzumer_f4hwn_ver_4_3_0.py` | Updated CHIRP driver |
+
+### Note on backwards compatibility
+Due to time constraints, these changes are **not backwards-compatible** with the original 24C64 EEPROM or the standard 200-channel firmware. If anyone wants to merge parts of this work upstream or create a compatibility layer, contributions are welcome. I have intentionally preserved all references and credits to the original authors throughout the codebase.
+
+---
+
 # Stats
 
 ![Alt](https://repobeats.axiom.co/api/embed/947813147857755cef60a960d13734044b3b2c22.svg "Repobeats analytics image")

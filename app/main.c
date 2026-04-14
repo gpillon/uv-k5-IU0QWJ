@@ -29,6 +29,7 @@
 
 #ifdef ENABLE_SPECTRUM
 #include "app/spectrum.h"
+#include "overlay.h"
 #endif
 
 #ifdef ENABLE_FEAT_F4HWN_GAME
@@ -39,6 +40,7 @@
 #include "board.h"
 #include "driver/bk4819.h"
 #include "dtmf.h"
+#include "eeprom_map.h"
 #include "frequencies.h"
 #include "misc.h"
 #include "radio.h"
@@ -234,9 +236,6 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
                 }
                 gRequestSaveVFO   = true;
                 gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
-#elif defined(ENABLE_SPECTRUM)
-                APP_RunSpectrum();
-                gRequestDisplayScreen = DISPLAY_MAIN;
 #endif
             }
             else {
@@ -246,7 +245,18 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
             break;
 
         case KEY_6:
-            ACTION_Power();
+            if(beep) {
+#ifdef ENABLE_SPECTRUM
+                if (OVERLAY_Load(OVERLAY_SPECTRUM))
+                    APP_RunSpectrum();
+                gRequestDisplayScreen = DISPLAY_MAIN;
+#else
+                ACTION_Power();
+#endif
+            }
+            else {
+                ACTION_Power();
+            }
             break;
 
         case KEY_7:
@@ -348,8 +358,8 @@ void channelMove(uint16_t Channel)
         gAnotherVoiceID        = (VOICE_ID_t)Key;
     #endif
 
-    gEeprom.MrChannel[Vfo]     = (uint8_t)Channel;
-    gEeprom.ScreenChannel[Vfo] = (uint8_t)Channel;
+    gEeprom.MrChannel[Vfo]     = Channel;
+    gEeprom.ScreenChannel[Vfo] = Channel;
     //gRequestSaveVFO            = true;
     gVfoConfigureMode          = VFO_CONFIGURE_RELOAD;
 
@@ -850,7 +860,7 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
     gPowerHigh = false;
 #endif
 
-    uint8_t Channel = gEeprom.ScreenChannel[gEeprom.TX_VFO];
+    uint16_t Channel = gEeprom.ScreenChannel[gEeprom.TX_VFO];
 
     if (bKeyHeld || !bKeyPressed) { // key held or released
         if (gInputBoxIndex > 0)
@@ -880,7 +890,7 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
         if (!IS_NOAA_CHANNEL(Channel))
 #endif
         {
-            uint8_t Next;
+            uint16_t Next;
             if (IS_FREQ_CHANNEL(Channel)) { // step/down in frequency
                 const uint32_t frequency = APP_SetFrequencyByStep(gTxVfo, Direction);
 
@@ -896,7 +906,7 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
             }
 
             Next = RADIO_FindNextChannel(Channel + Direction, Direction, false, 0);
-            if (Next == 0xFF)
+            if (Next == INVALID_CHANNEL)
                 return;
             if (Channel == Next)
                 return;

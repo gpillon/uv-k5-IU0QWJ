@@ -43,11 +43,11 @@
 
 enum {
     MR_CHANNEL_FIRST   = 0,
-    MR_CHANNEL_LAST    = 199u,
-    FREQ_CHANNEL_FIRST = 200u,
-    FREQ_CHANNEL_LAST  = 206u,
-    NOAA_CHANNEL_FIRST = 207u,
-    NOAA_CHANNEL_LAST  = 216u,
+    MR_CHANNEL_LAST    = 998u,
+    FREQ_CHANNEL_FIRST = 999u,
+    FREQ_CHANNEL_LAST  = 1005u,
+    NOAA_CHANNEL_FIRST = 1006u,
+    NOAA_CHANNEL_LAST  = 1015u,
     LAST_CHANNEL
 };
 
@@ -229,8 +229,8 @@ typedef union {
     uint8_t __val;
 } ChannelAttributes_t;
 
-extern ChannelAttributes_t   gMR_ChannelAttributes[207];
-extern bool                  gMR_ChannelExclude[207];
+extern ChannelAttributes_t   gMR_ChannelAttributes[FREQ_CHANNEL_LAST + 1];
+extern bool                  gMR_ChannelExclude[FREQ_CHANNEL_LAST + 1];
 
 extern volatile uint16_t     gBatterySaveCountdown_10ms;
 
@@ -305,7 +305,7 @@ extern bool                  gFlagReconfigureVfos;
 extern uint8_t               gVfoConfigureMode;
 extern bool                  gFlagResetVfos;
 extern bool                  gRequestSaveVFO;
-extern uint8_t               gRequestSaveChannel;
+extern uint16_t              gRequestSaveChannel;
 extern bool                  gRequestSaveSettings;
 #ifdef ENABLE_FMRADIO
     extern bool              gRequestSaveFM;
@@ -336,7 +336,7 @@ extern bool                  g_SquelchLost;
 extern volatile uint16_t     gFlashLightBlinkCounter;
 
 extern bool                  gFlagEndTransmission;
-extern uint8_t               gNextMrChannel;
+extern uint16_t              gNextMrChannel;
 extern ReceptionMode_t       gRxReceptionMode;
 
  //TRUE when dual watch is momentarly suspended and RX_VFO is locked to either last TX or RX

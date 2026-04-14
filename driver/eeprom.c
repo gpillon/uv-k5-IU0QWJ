@@ -20,30 +20,37 @@
 #include "driver/eeprom.h"
 #include "driver/i2c.h"
 #include "driver/system.h"
+#include "eeprom_map.h"
 
-void EEPROM_ReadBuffer(uint16_t Address, void *pBuffer, uint8_t Size)
+// 24M02: 2Mbit (256KB) organized as 4 x 64KB pages
+// Device address: 1010 A17 A16 R/W
+// A17:A16 select the 64KB page from bits 17:16 of the address
+
+static uint8_t EEPROM_DeviceAddr(uint32_t Address)
 {
+    return 0xA0 | (((Address >> 16) & 0x03) << 1);
+}
+
+void EEPROM_ReadBuffer(uint32_t Address, void *pBuffer, uint16_t Size)
+{
+    uint8_t devAddr = EEPROM_DeviceAddr(Address);
+
     I2C_Start();
-
-    I2C_Write(0xA0);
-
+    I2C_Write(devAddr);
     I2C_Write((Address >> 8) & 0xFF);
     I2C_Write((Address >> 0) & 0xFF);
-
     I2C_Start();
-
-    I2C_Write(0xA1);
-
+    I2C_Write(devAddr | 1);
     I2C_ReadBuffer(pBuffer, Size);
-
     I2C_Stop();
 }
 
-void EEPROM_WriteBuffer(uint16_t Address, const void *pBuffer)
+void EEPROM_WriteBuffer(uint32_t Address, const void *pBuffer)
 {
-    if (pBuffer == NULL || Address >= 0x2000)
+    if (pBuffer == NULL || Address >= EEPROM_MAX_ADDR)
         return;
 
+    uint8_t devAddr = EEPROM_DeviceAddr(Address);
 
     uint8_t buffer[8];
     EEPROM_ReadBuffer(Address, buffer, 8);
@@ -52,12 +59,12 @@ void EEPROM_WriteBuffer(uint16_t Address, const void *pBuffer)
     }
 
     I2C_Start();
-    I2C_Write(0xA0);
+    I2C_Write(devAddr);
     I2C_Write((Address >> 8) & 0xFF);
     I2C_Write((Address >> 0) & 0xFF);
     I2C_WriteBuffer(pBuffer, 8);
     I2C_Stop();
 
-    // give the EEPROM time to burn the data in (apparently takes 5ms)
-    SYSTEM_DelayMs(8);
+    // 24M02 write cycle: max 10ms
+    SYSTEM_DelayMs(10);
 }

@@ -21,6 +21,7 @@
 #ifdef ENABLE_FMRADIO
     #include "app/fm.h"
 #endif
+#include "overlay.h"
 #include "app/scanner.h"
 #include "bsp/dp32g030/gpio.h"
 #include "audio.h"
@@ -29,6 +30,7 @@
 #include "driver/gpio.h"
 #include "driver/system.h"
 #include "dtmf.h"
+#include "eeprom_map.h"
 #include "external/printf/printf.h"
 #include "misc.h"
 #include "settings.h"
@@ -141,7 +143,7 @@ bool DTMF_GetContact(const int Index, char *pContact)
         return false;
     }
 
-    EEPROM_ReadBuffer(0x1C00 + (Index * 16), pContact, 16);
+    EEPROM_ReadBuffer(EEPROM_DTMF_CONTACTS + (Index * 16), pContact, 16);
 
     // check whether the first character is printable or not
     return (pContact[0] >= ' ' && pContact[0] < 127);
@@ -277,7 +279,7 @@ void DTMF_HandleRequest(void)
                 gDTMF_ReplyState = DTMF_REPLY_AB;
 
                 #ifdef ENABLE_FMRADIO
-                    if (gFmRadioMode)
+                    if (gFmRadioMode && OVERLAY_Load(OVERLAY_FM))
                     {
                         FM_TurnOff();
                         GUI_SelectNextDisplay(DISPLAY_MAIN);

@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "driver/st7565.h"
+#include "eeprom_map.h"
 #include "external/printf/printf.h"
 #include "font.h"
 #include "ui/helper.h"
@@ -27,24 +28,24 @@
     #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 #endif
 
-void UI_GenerateChannelString(char *pString, const uint8_t Channel)
+void UI_GenerateChannelString(char *pString, const uint16_t Channel)
 {
     unsigned int i;
 
     if (gInputBoxIndex == 0)
     {
-        sprintf(pString, "CH-%02u", Channel + 1);
+        sprintf(pString, "CH-%03u", Channel + 1);
         return;
     }
 
     pString[0] = 'C';
     pString[1] = 'H';
     pString[2] = '-';
-    for (i = 0; i < 2; i++)
+    for (i = 0; i < 3; i++)
         pString[i + 3] = (gInputBox[i] == 10) ? '-' : gInputBox[i] + '0';
 }
 
-void UI_GenerateChannelStringEx(char *pString, const bool bShowPrefix, const uint8_t ChannelNumber)
+void UI_GenerateChannelStringEx(char *pString, const bool bShowPrefix, const uint16_t ChannelNumber)
 {
     if (gInputBoxIndex > 0) {
         for (unsigned int i = 0; i < 3; i++) {
@@ -56,9 +57,8 @@ void UI_GenerateChannelStringEx(char *pString, const bool bShowPrefix, const uin
     }
 
     if (bShowPrefix) {
-        // BUG here? Prefixed NULLs are allowed
         sprintf(pString, "CH-%03u", ChannelNumber + 1);
-    } else if (ChannelNumber == 0xFF) {
+    } else if (ChannelNumber == INVALID_CHANNEL) {
         strcpy(pString, "NULL");
     } else {
         sprintf(pString, "%03u", ChannelNumber + 1);

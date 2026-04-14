@@ -39,6 +39,7 @@
 #include "ui/scanner.h"
 #include "ui/ui.h"
 #include "../misc.h"
+#include "../overlay.h"
 
 GUI_DisplayType_t gScreenToDisplay;
 GUI_DisplayType_t gRequestDisplayScreen = DISPLAY_INVALID;
@@ -47,18 +48,35 @@ uint8_t           gAskForConfirmation;
 bool              gAskToSave;
 bool              gAskToDelete;
 
+#ifdef ENABLE_FMRADIO
+static void UI_DisplayFM_Ovly(void) {
+    if (OVERLAY_Load(OVERLAY_FM))
+        UI_DisplayFM();
+}
+#endif
+#ifdef ENABLE_AIRCOPY
+static void UI_DisplayAircopy_Ovly(void) {
+    if (OVERLAY_Load(OVERLAY_AIRCOPY))
+        UI_DisplayAircopy();
+}
+#endif
+
+static void UI_DisplayMenu_Ovly(void) {
+    if (OVERLAY_Load(OVERLAY_MENU))
+        UI_DisplayMenu();
+}
 
 void (*UI_DisplayFunctions[])(void) = {
     [DISPLAY_MAIN] = &UI_DisplayMain,
-    [DISPLAY_MENU] = &UI_DisplayMenu,
+    [DISPLAY_MENU] = &UI_DisplayMenu_Ovly,
     [DISPLAY_SCANNER] = &UI_DisplayScanner,
 
 #ifdef ENABLE_FMRADIO
-    [DISPLAY_FM] = &UI_DisplayFM,
+    [DISPLAY_FM] = &UI_DisplayFM_Ovly,
 #endif
 
 #ifdef ENABLE_AIRCOPY
-    [DISPLAY_AIRCOPY] = &UI_DisplayAircopy,
+    [DISPLAY_AIRCOPY] = &UI_DisplayAircopy_Ovly,
 #endif
 
 #ifdef ENABLE_REGA

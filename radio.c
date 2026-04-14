@@ -29,6 +29,7 @@
 #include "driver/eeprom.h"
 #include "driver/gpio.h"
 #include "driver/system.h"
+#include "eeprom_map.h"
 #include "frequencies.h"
 #include "functions.h"
 #include "helper/battery.h"
@@ -106,19 +107,17 @@ bool RADIO_CheckValidChannel(uint16_t channel, bool checkScanList, uint8_t scanL
 
     // I don't understand what this code is for...
     
-    const uint8_t PriorityCh1 = gEeprom.SCANLIST_PRIORITY_CH1[scanList - 1];
-    const uint8_t PriorityCh2 = gEeprom.SCANLIST_PRIORITY_CH2[scanList - 1];
+    const uint16_t PriorityCh1 = gEeprom.SCANLIST_PRIORITY_CH1[scanList - 1];
+    const uint16_t PriorityCh2 = gEeprom.SCANLIST_PRIORITY_CH2[scanList - 1];
 
     return PriorityCh1 != channel && PriorityCh2 != channel;
 }
 
-uint8_t RADIO_FindNextChannel(uint8_t Channel, int8_t Direction, bool bCheckScanList, uint8_t VFO)
+uint16_t RADIO_FindNextChannel(uint16_t Channel, int8_t Direction, bool bCheckScanList, uint8_t VFO)
 {
     for (unsigned int i = 0; IS_MR_CHANNEL(i); i++, Channel += Direction) {
-        if (Channel == 0xFF) {
-            Channel = MR_CHANNEL_LAST;
-        } else if (!IS_MR_CHANNEL(Channel)) {
-            Channel = MR_CHANNEL_FIRST;
+        if (!IS_MR_CHANNEL(Channel)) {
+            Channel = (Direction > 0) ? MR_CHANNEL_FIRST : MR_CHANNEL_LAST;
         }
 
         if (RADIO_CheckValidChannel(Channel, bCheckScanList, VFO)) {
@@ -126,10 +125,10 @@ uint8_t RADIO_FindNextChannel(uint8_t Channel, int8_t Direction, bool bCheckScan
         }
     }
 
-    return 0xFF;
+    return INVALID_CHANNEL;
 }
 
-void RADIO_InitInfo(VFO_Info_t *pInfo, const uint8_t ChannelSave, const uint32_t Frequency)
+void RADIO_InitInfo(VFO_Info_t *pInfo, const uint16_t ChannelSave, const uint32_t Frequency)
 {
     memset(pInfo, 0, sizeof(*pInfo));
 
@@ -169,7 +168,7 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
             gEeprom.ScreenChannel[VFO] = FREQ_CHANNEL_FIRST + BAND6_400MHz;
     }
 
-    uint8_t channel = gEeprom.ScreenChannel[VFO];
+    uint16_t channel = gEeprom.ScreenChannel[VFO];
 
     if (IS_VALID_CHANNEL(channel)) {
 #ifdef ENABLE_NOAA
@@ -189,7 +188,7 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
 
         if (IS_MR_CHANNEL(channel)) {
             channel = RADIO_FindNextChannel(channel, RADIO_CHANNEL_UP, false, VFO);
-            if (channel == 0xFF) {
+            if (channel == INVALID_CHANNEL) {
                 channel                    = gEeprom.FreqChannel[VFO];
                 gEeprom.ScreenChannel[VFO] = gEeprom.FreqChannel[VFO];
             }
@@ -209,7 +208,7 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
             gEeprom.ScreenChannel[VFO] = channel;
         }
 
-        uint8_t bandIdx = channel - FREQ_CHANNEL_FIRST;
+        uint16_t bandIdx = channel - FREQ_CHANNEL_FIRST;
         RADIO_InitInfo(pVfo, channel, frequencyBandTable[bandIdx].lower);
         return;
     }
@@ -241,11 +240,11 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
     pVfo->SCANLIST3_PARTICIPATION = bParticipation3;
     pVfo->CHANNEL_SAVE            = channel;
 
-    uint16_t base;
+    uint32_t base;
     if (IS_MR_CHANNEL(channel))
-        base = channel * 16;
+        base = EEPROM_MR_CH_ADDR(channel);
     else
-        base = 0x0C80 + ((channel - FREQ_CHANNEL_FIRST) * 32) + (VFO * 16);
+        base = EEPROM_VFO_ADDR(channel - FREQ_CHANNEL_FIRST, VFO);
 
     if (configure == VFO_CONFIGURE_RELOAD || IS_FREQ_CHANNEL(channel))
     {
@@ -450,7 +449,7 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
     // squelch
 
     FREQUENCY_Band_t Band = FREQUENCY_GetBand(pInfo->pRX->Frequency);
-    uint16_t Base = (Band < BAND4_174MHz) ? 0x1E60 : 0x1E00;
+    uint32_t Base = (Band < BAND4_174MHz) ? EEPROM_SQUELCH_VHF : EEPROM_SQUELCH_UHF;
 
     if (gEeprom.SQUELCH_LEVEL == 0)
     {   // squelch == 0 (off)
@@ -552,7 +551,7 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
         currentPower--;
     }
 
-    EEPROM_ReadBuffer(0x1ED0 + (Band * 16) + (Op * 3), Txp, 3);
+    EEPROM_ReadBuffer(EEPROM_TX_POWER_CAL + (Band * 16) + (Op * 3), Txp, 3);
 
 #ifdef ENABLE_FEAT_F4HWN
     // make low and mid even lower

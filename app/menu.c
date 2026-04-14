@@ -31,6 +31,7 @@
 #include "driver/eeprom.h"
 #include "driver/gpio.h"
 #include "driver/keyboard.h"
+#include "eeprom_map.h"
 #include "frequencies.h"
 #include "helper/battery.h"
 #include "misc.h"
@@ -69,9 +70,9 @@ uint8_t gUnlockAllTxConfCnt;
             // radio 1 .. 04 00 46 00 50 00 2C 0E
             // radio 2 .. 05 00 46 00 50 00 2C 0E
             //
-            EEPROM_ReadBuffer(0x1F88, &misc, 8);
+            EEPROM_ReadBuffer(EEPROM_CRYSTAL_VOL_DAC, &misc, 8);
             misc.BK4819_XtalFreqLow = value;
-            EEPROM_WriteBuffer(0x1F88, &misc);
+            EEPROM_WriteBuffer(EEPROM_CRYSTAL_VOL_DAC, &misc);
         }
     }
 #endif
@@ -1843,7 +1844,7 @@ static void MENU_Key_STAR(const bool bKeyPressed, const bool bKeyHeld)
 static void MENU_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 {
     uint8_t VFO;
-    uint8_t Channel;
+    uint16_t Channel;
     bool    bCheckScanList;
 
     if (UI_MENU_GetCurrentMenuId() == MENU_MEM_NAME && gIsInSubMenu && edit_index >= 0)
@@ -1950,7 +1951,7 @@ static void MENU_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
     }
 
     Channel = RADIO_FindNextChannel(gSubMenuSelection + Direction, Direction, bCheckScanList, VFO);
-    if (Channel != 0xFF)
+    if (Channel != INVALID_CHANNEL)
         gSubMenuSelection = Channel;
 
     gRequestDisplayScreen = DISPLAY_MENU;

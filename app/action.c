@@ -46,6 +46,8 @@
     #include "app/rega.h"
 #endif
 
+#include "overlay.h"
+
 #if defined(ENABLE_FMRADIO)
 static void ACTION_Scan_FM(bool bRestart);
 #endif
@@ -177,8 +179,10 @@ void ACTION_Monitor(void)
 
 #ifdef ENABLE_FMRADIO
     if (gFmRadioMode) {
-        FM_Start();
-        gRequestDisplayScreen = DISPLAY_FM;
+        if (OVERLAY_Load(OVERLAY_FM)) {
+            FM_Start();
+            gRequestDisplayScreen = DISPLAY_FM;
+        }
     }
     else
 #endif
@@ -360,6 +364,9 @@ void ACTION_FM(void)
 {
     if (gCurrentFunction != FUNCTION_TRANSMIT && gCurrentFunction != FUNCTION_MONITOR)
     {
+        if (!OVERLAY_Load(OVERLAY_FM))
+            return;
+
         gInputBoxIndex = 0;
 
         if (gFmRadioMode) {
@@ -387,6 +394,9 @@ void ACTION_FM(void)
 static void ACTION_Scan_FM(bool bRestart)
 {
     if (FUNCTION_IsRx())
+        return;
+
+    if (!OVERLAY_Load(OVERLAY_FM))
         return;
 
     GUI_SelectNextDisplay(DISPLAY_FM);

@@ -1,7 +1,9 @@
-name: Build Firmware
+name: Build Firmware (IU0QWJ Edition)
 
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
@@ -10,15 +12,21 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Compile firmware
+    - name: Compile firmware (IU0QWJ edition)
       run: |
-        chmod +x compile-with-docker.sh
-        ./compile-with-docker.sh
+        chmod +x compile-iu0qwj.sh
+        ./compile-iu0qwj.sh iu0qwj
 
-    - name: Upload firmware artifact
+    - name: Upload firmware artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: firmware-artifact
-        path: compiled-firmware/f4hwn.packed.bin
+        name: firmware-iu0qwj
+        path: |
+          compiled-firmware/f4hwn.packed.bin
+          compiled-firmware/f4hwn.bin
+          compiled-firmware/f4hwn.ovly_spectrum.bin
+          compiled-firmware/f4hwn.ovly_fm.bin
+          compiled-firmware/f4hwn.ovly_aircopy.bin
+          compiled-firmware/f4hwn.ovly_menu.bin

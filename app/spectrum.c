@@ -33,6 +33,7 @@
 
 #ifdef ENABLE_FEAT_F4HWN_SPECTRUM
 #include "driver/eeprom.h"
+#include "eeprom_map.h"
 #endif
 
 struct FrequencyBandInfo
@@ -121,8 +122,7 @@ uint16_t statuslineUpdateTimer = 0;
 static void LoadSettings()
 {
     uint8_t Data[8] = {0};
-    // 1FF0..0x1FF7
-    EEPROM_ReadBuffer(0x1FF0, Data, 8);
+    EEPROM_ReadBuffer(EEPROM_BUILD_OPTIONS, Data, 8);
 
     settings.scanStepIndex = ((Data[3] & 0xF0) >> 4);
 
@@ -149,12 +149,11 @@ static void LoadSettings()
 static void SaveSettings()
 {
     uint8_t Data[8] = {0};
-    // 1FF0..0x1FF7
-    EEPROM_ReadBuffer(0x1FF0, Data, 8);
+    EEPROM_ReadBuffer(EEPROM_BUILD_OPTIONS, Data, 8);
 
     Data[3] = (settings.scanStepIndex << 4) | (settings.stepsCount << 2) | settings.listenBw;
 
-    EEPROM_WriteBuffer(0x1FF0, Data);
+    EEPROM_WriteBuffer(EEPROM_BUILD_OPTIONS, Data);
 }
 #endif
 

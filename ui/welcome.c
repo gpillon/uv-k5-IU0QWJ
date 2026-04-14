@@ -18,6 +18,7 @@
 
 #include "driver/eeprom.h"
 #include "driver/st7565.h"
+#include "eeprom_map.h"
 #include "external/printf/printf.h"
 #include "helper/battery.h"
 #include "settings.h"
@@ -75,8 +76,8 @@ void UI_DisplayWelcome(void)
         memset(WelcomeString0, 0, sizeof(WelcomeString0));
         memset(WelcomeString1, 0, sizeof(WelcomeString1));
 
-        EEPROM_ReadBuffer(0x0EB0, WelcomeString0, 16);
-        EEPROM_ReadBuffer(0x0EC0, WelcomeString1, 16);
+        EEPROM_ReadBuffer(EEPROM_WELCOME_0, WelcomeString0, 16);
+        EEPROM_ReadBuffer(EEPROM_WELCOME_1, WelcomeString1, 16);
 
         sprintf(WelcomeString2, "%u.%02uV %u%%",
                 gBatteryVoltageAverage / 100,

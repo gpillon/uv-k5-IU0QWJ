@@ -1,0 +1,8 @@
+**/*.o
+**/*.d
+**/*.bin
+**/*.raw
+**/*.elf
+f4hwn
+compiled-firmware/
+.git/

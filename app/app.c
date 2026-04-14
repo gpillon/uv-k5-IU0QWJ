@@ -68,6 +68,7 @@
 #if defined(ENABLE_OVERLAY)
     #include "sram-overlay.h"
 #endif
+#include "overlay.h"
 #include "ui/battery.h"
 #include "ui/inputbox.h"
 #include "ui/main.h"
@@ -85,6 +86,18 @@ static bool flagSaveChannel;
 
 static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld);
 
+#ifdef ENABLE_FMRADIO
+static void FM_ProcessKeys_Ovly(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld) {
+    if (OVERLAY_Load(OVERLAY_FM))
+        FM_ProcessKeys(Key, bKeyPressed, bKeyHeld);
+}
+#endif
+#ifdef ENABLE_AIRCOPY
+static void AIRCOPY_ProcessKeys_Ovly(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld) {
+    if (OVERLAY_Load(OVERLAY_AIRCOPY))
+        AIRCOPY_ProcessKeys(Key, bKeyPressed, bKeyHeld);
+}
+#endif
 
 void (*ProcessKeysFunctions[])(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld) = {
     [DISPLAY_MAIN] = &MAIN_ProcessKeys,
@@ -92,11 +105,11 @@ void (*ProcessKeysFunctions[])(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld) 
     [DISPLAY_SCANNER] = &SCANNER_ProcessKeys,
 
 #ifdef ENABLE_FMRADIO
-    [DISPLAY_FM] = &FM_ProcessKeys,
+    [DISPLAY_FM] = &FM_ProcessKeys_Ovly,
 #endif
 
 #ifdef ENABLE_AIRCOPY
-    [DISPLAY_AIRCOPY] = &AIRCOPY_ProcessKeys,
+    [DISPLAY_AIRCOPY] = &AIRCOPY_ProcessKeys_Ovly,
 #endif
 };
 
@@ -796,7 +809,8 @@ static void CheckRadioInterrupts(void)
                 g_FSK_Buffer[gFSKWriteIndex++] = BK4819_ReadRegister(BK4819_REG_5F);
             }
 
-            AIRCOPY_StorePacket();
+            if (OVERLAY_Load(OVERLAY_AIRCOPY))
+                AIRCOPY_StorePacket();
         }
 #endif
     }
@@ -1055,8 +1069,8 @@ void APP_Update(void)
 
 #ifdef ENABLE_FMRADIO
     if (gScheduleFM && gFM_ScanState != FM_SCAN_OFF && !FUNCTION_IsRx()) {
-        // switch to FM radio mode
-        FM_Play();
+        if (OVERLAY_Load(OVERLAY_FM))
+            FM_Play();
         gScheduleFM = false;
     }
 #endif
@@ -1486,9 +1500,11 @@ void APP_TimeSlice10ms(void)
 
 #ifdef ENABLE_FMRADIO
     if (gFmRadioMode && gFM_RestoreCountdown_10ms > 0) {
-        if (--gFM_RestoreCountdown_10ms == 0) { 
-            FM_Start(); // switch back to FM radio mode
-            GUI_SelectNextDisplay(DISPLAY_FM);
+        if (--gFM_RestoreCountdown_10ms == 0) {
+            if (OVERLAY_Load(OVERLAY_FM)) {
+                FM_Start();
+                GUI_SelectNextDisplay(DISPLAY_FM);
+            }
         }
     }
 #endif
@@ -1498,7 +1514,7 @@ void APP_TimeSlice10ms(void)
 
 #ifdef ENABLE_AIRCOPY
     if (gScreenToDisplay == DISPLAY_AIRCOPY && gAircopyState == AIRCOPY_TRANSFER && gAirCopyIsSendMode == 1) {
-        if (!AIRCOPY_SendMessage()) {
+        if (OVERLAY_Load(OVERLAY_AIRCOPY) && !AIRCOPY_SendMessage()) {
             GUI_DisplayScreen();
         }
     }
@@ -1769,9 +1785,10 @@ void APP_TimeSlice500ms(void)
             RADIO_SetVfoState(VFO_STATE_NORMAL);
 #ifdef ENABLE_FMRADIO
         if (gFmRadioMode && !FUNCTION_IsRx()) {
-            // switch back to FM radio mode
-            FM_Start();
-            GUI_SelectNextDisplay(DISPLAY_FM);
+            if (OVERLAY_Load(OVERLAY_FM)) {
+                FM_Start();
+                GUI_SelectNextDisplay(DISPLAY_FM);
+            }
         }
 #endif
     }

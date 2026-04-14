@@ -4,6 +4,7 @@
 #include "bsp/dp32g030/gpio.h"
 
 #include "flashlight.h"
+#include <stdbool.h>
 
 #if !defined(ENABLE_FEAT_F4HWN) || defined(ENABLE_FEAT_F4HWN_RESCUE_OPS)
     enum FlashlightMode_t  gFlashLightState;

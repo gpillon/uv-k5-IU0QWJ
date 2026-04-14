@@ -23,6 +23,7 @@
 #ifdef ENABLE_FMRADIO
     #include "app/fm.h"
 #endif
+#include "overlay.h"
 
 #include "app/generic.h"
 #include "app/menu.h"
@@ -145,7 +146,7 @@ void GENERIC_Key_PTT(bool bKeyPressed)
 
 
 #ifdef ENABLE_FMRADIO
-    if (gFM_ScanState != FM_SCAN_OFF) { // FM radio is scanning .. stop
+    if (gFM_ScanState != FM_SCAN_OFF && OVERLAY_Load(OVERLAY_FM)) {
         FM_PlayAndUpdate();
 #ifdef ENABLE_VOICE
         gAnotherVoiceID = VOICE_ID_SCANNING_STOP;

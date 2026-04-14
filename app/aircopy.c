@@ -25,6 +25,7 @@
 #include "driver/bk4819.h"
 #include "driver/crc.h"
 #include "driver/eeprom.h"
+#include "eeprom_map.h"
 #include "frequencies.h"
 #include "misc.h"
 #include "radio.h"
@@ -127,7 +128,7 @@ void AIRCOPY_StorePacket(void)
 
     uint16_t Offset = g_FSK_Buffer[1];
 
-    if (Offset >= 0x1E00) {
+    if (Offset >= EEPROM_AIRCOPY_LIMIT) {
         gErrorsDuringAirCopy++;
         return;
     }
@@ -139,7 +140,7 @@ void AIRCOPY_StorePacket(void)
         Offset += 8;
     }
 
-    if (Offset == 0x1E00) {
+    if (Offset == EEPROM_AIRCOPY_LIMIT) {
         gAircopyState = AIRCOPY_COMPLETE;
         #ifdef ENABLE_FEAT_F4HWN_SCREENSHOT
             getScreenShot(false);

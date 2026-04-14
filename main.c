@@ -36,6 +36,7 @@
     #endif
     #ifdef ENABLE_SPECTRUM
         #include "app/spectrum.h"
+        #include "overlay.h"
     #endif
     #include "app/chFrScanner.h"
 #endif
@@ -321,10 +322,12 @@ void Main(void)
 
         #ifdef ENABLE_SPECTRUM
         case 4:
-            APP_RunSpectrum();
+            if (OVERLAY_Load(OVERLAY_SPECTRUM))
+                APP_RunSpectrum();
             break;
         case 5:
-            APP_RunSpectrum();
+            if (OVERLAY_Load(OVERLAY_SPECTRUM))
+                APP_RunSpectrum();
             break;
         #endif
 
@@ -359,7 +362,8 @@ void Main(void)
         #endif
         #ifdef ENABLE_SPECTRUM
         else if (gEeprom.CURRENT_STATE == 4 || gEeprom.CURRENT_STATE == 5) {
-            APP_RunSpectrum();
+            if (OVERLAY_Load(OVERLAY_SPECTRUM))
+                APP_RunSpectrum();
         }
         #endif
     #endif

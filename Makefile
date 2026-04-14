@@ -13,7 +13,7 @@ ENABLE_VOX                      ?= 1
 ENABLE_ALARM                    ?= 0
 ENABLE_TX1750                   ?= 1
 ENABLE_PWRON_PASSWORD           ?= 0
-ENABLE_DTMF_CALLING             ?= 0
+ENABLE_DTMF_CALLING             ?= 1
 ENABLE_FLASHLIGHT               ?= 1
 
 # ---- CUSTOM MODS ----
@@ -55,7 +55,7 @@ ENABLE_FEAT_F4HWN_GAME          ?= 0
 ENABLE_FEAT_F4HWN_SCREENSHOT    ?= 0
 ENABLE_FEAT_F4HWN_SPECTRUM      ?= 1
 ENABLE_FEAT_F4HWN_RX_TX_TIMER   ?= 1
-ENABLE_FEAT_F4HWN_CHARGING_C    ?= 0
+ENABLE_FEAT_F4HWN_CHARGING_C    ?= 1
 ENABLE_FEAT_F4HWN_SLEEP         ?= 1
 ENABLE_FEAT_F4HWN_RESUME_STATE  ?= 1
 ENABLE_FEAT_F4HWN_NARROWER      ?= 1
@@ -187,6 +187,7 @@ OBJS += functions.o
 OBJS += helper/battery.o
 OBJS += helper/boot.o
 OBJS += misc.o
+OBJS += overlay.o
 OBJS += radio.o
 OBJS += scheduler.o
 OBJS += settings.o
@@ -204,6 +205,7 @@ ifeq ($(ENABLE_PWRON_PASSWORD),1)
 endif
 OBJS += ui/main.o
 OBJS += ui/menu.o
+OBJS += ui/menu_render.o
 OBJS += ui/scanner.o
 OBJS += ui/status.o
 OBJS += ui/ui.o
@@ -247,9 +249,9 @@ ifeq ($(ENABLE_FEAT_F4HWN),1)
 	VERSION_STRING_1 ?= v0.22
 
 	AUTHOR_STRING_2 ?= F4HWN
-	VERSION_STRING_2 ?= v4.3
+	VERSION_STRING_2 ?= v4.3.1
 
-	EDITION_STRING ?= Custom
+	EDITION_STRING ?= IU0QWJ
 
 	AUTHOR_STRING ?= $(AUTHOR_STRING_1)+$(AUTHOR_STRING_2)
 	VERSION_STRING ?= $(VERSION_STRING_2)
@@ -281,25 +283,19 @@ endif
 CFLAGS =
 ifeq ($(ENABLE_CLANG),0)
 	CFLAGS += -Oz -Wall -Werror -mcpu=cortex-m0 -fshort-enums -fno-delete-null-pointer-checks -std=c2x -MMD
-	#CFLAGS += -Os -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -std=c2x -MMD
-	#CFLAGS += -Os -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -std=c11 -MMD
-	#CFLAGS += -Os -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -std=c99 -MMD
-	#CFLAGS += -Os -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -std=gnu99 -MMD
-	#CFLAGS += -Os -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -std=gnu11 -MMD
 else
-	# Oz needed to make it fit on flash
-	CFLAGS += -Oz -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -std=c2x -MMD
+	CFLAGS += -Oz -Wall -Werror -mcpu=cortex-m0 -fshort-enums -fno-delete-null-pointer-checks -std=c2x -MMD
 endif
 
 ifeq ($(ENABLE_EXPERIMENTAL_CLFAGS),1)
 	CFLAGS += -funroll-loops -ffat-lto-objects
 endif
 
+CFLAGS += -fno-unwind-tables -fno-asynchronous-unwind-tables -fmerge-all-constants
+
+CFLAGS += -ffunction-sections -fdata-sections
 ifeq ($(ENABLE_LTO),1)
 	CFLAGS += -flto=auto
-else
-	# We get most of the space savings if LTO creates problems
-	CFLAGS += -ffunction-sections -fdata-sections
 endif
 
 # May cause unhelpful build failures
@@ -539,8 +535,37 @@ ifdef MY_PYTHON
     HAS_CRCMOD := $(shell $(MY_PYTHON) -c "import crcmod" 2>&1)
 endif
 
+# Overlay objects: compiled WITHOUT LTO so linker can separate their sections
+OVLY_OBJS =
+ifeq ($(ENABLE_SPECTRUM), 1)
+OVLY_OBJS += app/spectrum.o
+endif
+ifeq ($(ENABLE_FMRADIO),1)
+OVLY_OBJS += app/fm.o ui/fmradio.o
+endif
+ifeq ($(ENABLE_AIRCOPY),1)
+OVLY_OBJS += app/aircopy.o ui/aircopy.o
+endif
+OVLY_OBJS += ui/menu_render.o
+
+OVLY_CFLAGS = $(filter-out -flto=auto -ffat-lto-objects,$(CFLAGS)) -ffunction-sections -fdata-sections
+
 all: $(TARGET)
-	$(OBJCOPY) -O binary $< $<.bin
+	$(OBJCOPY) -O binary -R .ovly_spectrum -R .ovly_fm -R .ovly_aircopy -R .ovly_menu $< $<.bin
+ifeq ($(ENABLE_SPECTRUM), 1)
+	$(OBJCOPY) -O binary -j .ovly_spectrum $< $<.ovly_spectrum.raw 2>/dev/null && \
+	printf 'OVLY' | cat - $<.ovly_spectrum.raw > $<.ovly_spectrum.bin && rm -f $<.ovly_spectrum.raw || true
+endif
+ifeq ($(ENABLE_FMRADIO),1)
+	$(OBJCOPY) -O binary -j .ovly_fm $< $<.ovly_fm.raw 2>/dev/null && \
+	printf 'OVLY' | cat - $<.ovly_fm.raw > $<.ovly_fm.bin && rm -f $<.ovly_fm.raw || true
+endif
+ifeq ($(ENABLE_AIRCOPY),1)
+	$(OBJCOPY) -O binary -j .ovly_aircopy $< $<.ovly_aircopy.raw 2>/dev/null && \
+	printf 'OVLY' | cat - $<.ovly_aircopy.raw > $<.ovly_aircopy.bin && rm -f $<.ovly_aircopy.raw || true
+endif
+	$(OBJCOPY) -O binary -j .ovly_menu $< $<.ovly_menu.raw 2>/dev/null && \
+	printf 'OVLY' | cat - $<.ovly_menu.raw > $<.ovly_menu.bin && rm -f $<.ovly_menu.raw || true
 
 ifndef MY_PYTHON
 	$(info )
@@ -574,6 +599,10 @@ $(TARGET): $(OBJS)
 
 bsp/dp32g030/%.h: hardware/dp32g030/%.def
 
+# Overlay objects: compiled without LTO so their sections stay separate
+$(OVLY_OBJS): %.o: %.c | $(BSP_HEADERS)
+	$(CC) $(OVLY_CFLAGS) $(INC) -c $< -o $@
+
 %.o: %.c | $(BSP_HEADERS)
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
 
@@ -585,7 +614,7 @@ bsp/dp32g030/%.h: hardware/dp32g030/%.def
 -include $(DEPS)
 
 clean:
-	$(RM) $(call FixPath, $(TARGET).bin $(TARGET).packed.bin $(TARGET) $(OBJS) $(DEPS))
+	$(RM) $(call FixPath, $(TARGET).bin $(TARGET).packed.bin $(TARGET).ovly_spectrum.bin $(TARGET).ovly_fm.bin $(TARGET).ovly_aircopy.bin $(TARGET).ovly_menu.bin $(TARGET) $(OBJS) $(DEPS))
 
 doxygen:
 	doxygen
