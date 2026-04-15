@@ -25,7 +25,19 @@ This fork by **IU0QWJ** adds hardware and firmware modifications to support the 
 | `uvk5_egzumer_f4hwn_ver_4_3_0.py` | Updated CHIRP driver |
 
 ### Note on backwards compatibility
-Due to time constraints, these changes are **not backwards-compatible** with the original 24C64 EEPROM or the standard 200-channel firmware. If anyone wants to merge parts of this work upstream or create a compatibility layer, contributions are welcome. I have intentionally preserved all references and credits to the original authors throughout the codebase.
+Due to time constraints, these changes are **not backwards-compatible** with the original 24C64 EEPROM or the standard 200-channel firmware. If anyone wants to merge parts of this work upstream or create a compatibility layer, contributions are welcome (lack of time, sad.). I have intentionally preserved all references and credits to the original authors throughout the codebase.
+
+### Build cmds
+- `docker rmi uvk5 2>/dev/null; bash compile-iu0qwj.sh iu0qwj`
+- 
+```
+rm -f *.o app/*.o ui/*.o driver/*.o helper/*.o external/printf/*.o *.d app/*.d ui/*.d driver/*.d helper/*.d external/printf/*.d f4hwn f4hwn.bin f4hwn.packed.bin f4hwn.ovly*.bin f4hwn.ovly*.raw f4hwn.ovly_hdr.tmp && make \
+  ENABLE_SPECTRUM=1 ENABLE_FMRADIO=1 ENABLE_AIRCOPY=1 \
+  ENABLE_NOAA=1 ENABLE_VOX=1 ENABLE_TX1750=1 ENABLE_FLASHLIGHT=1 \
+  ENABLE_DTMF_CALLING=1 ENABLE_FEAT_F4HWN_CHARGING_C=1 \
+  ENABLE_FEAT_F4HWN_GAME=0 \
+  EDITION_STRING=IU0QWJ
+```
 
 ---
 
